@@ -7,7 +7,9 @@ public class LoadUtils {
 
     public static enum Function {
         FD("libarcsoft_fsdk_face_detection"),
-        FR("libarcsoft_fsdk_face_recognition");
+        FR("libarcsoft_fsdk_face_recognition"),
+        AGE("libarcsoft_fsdk_age_estimation"),
+        GENDER("libarcsoft_fsdk_gender_estimation");
 
         private String name;
 

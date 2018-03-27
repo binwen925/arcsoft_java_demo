@@ -1,4 +1,4 @@
-package com.zbw.arcsoft;
+package com.zbw.arcsoft.fd;
 
 public class _AFD_FSDK_OrientCode {
     public static final int AFD_FSDK_FOC_0 = 0x1;// 0 degree

@@ -1,11 +1,11 @@
-package com.zbw.arcsoft;
+package com.zbw.arcsoft.fd;
 
 import com.sun.jna.Library;
-import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
-import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.PointerByReference;
+import com.zbw.arcsoft.ASVLOFFSCREEN;
+import com.zbw.arcsoft.LoadUtils;
 
 public interface AFD_FSDKLibrary extends Library {
 

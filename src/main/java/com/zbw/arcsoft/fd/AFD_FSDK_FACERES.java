@@ -1,4 +1,4 @@
-package com.zbw.arcsoft;
+package com.zbw.arcsoft.fd;
 
 import java.util.Arrays;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.List;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.ptr.IntByReference;
+import com.zbw.arcsoft.MRECT;
 
 public class AFD_FSDK_FACERES extends Structure {
     public static class ByReference extends AFD_FSDK_FACERES implements Structure.ByReference {

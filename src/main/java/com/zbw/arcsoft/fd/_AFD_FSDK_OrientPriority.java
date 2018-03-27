@@ -1,4 +1,4 @@
-package com.zbw.arcsoft;
+package com.zbw.arcsoft.fd;
 
 public class _AFD_FSDK_OrientPriority {
     public static final int AFD_FSDK_OPF_0_ONLY = 0x1;       // 0; 0; ...

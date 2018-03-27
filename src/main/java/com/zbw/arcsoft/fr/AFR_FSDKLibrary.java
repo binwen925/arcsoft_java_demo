@@ -1,12 +1,12 @@
-package com.zbw.arcsoft;
+package com.zbw.arcsoft.fr;
 
 import com.sun.jna.Library;
-import com.sun.jna.Native;
 import com.sun.jna.NativeLong;
-import com.sun.jna.Platform;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.PointerByReference;
+import com.zbw.arcsoft.ASVLOFFSCREEN;
+import com.zbw.arcsoft.LoadUtils;
 
 public interface AFR_FSDKLibrary extends Library {
     AFR_FSDKLibrary INSTANCE = LoadUtils.loadLibrary(LoadUtils.Function.FR, AFR_FSDKLibrary.class);

@@ -1,9 +1,10 @@
-package com.zbw.arcsoft;
+package com.zbw.arcsoft.fr;
 
 import java.util.Arrays;
 import java.util.List;
 
 import com.sun.jna.Structure;
+import com.zbw.arcsoft.MRECT;
 
 public class AFR_FSDK_FACEINPUT extends Structure {
     

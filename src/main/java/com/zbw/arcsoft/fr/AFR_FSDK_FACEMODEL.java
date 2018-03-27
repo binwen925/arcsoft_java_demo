@@ -1,4 +1,4 @@
-package com.zbw.arcsoft;
+package com.zbw.arcsoft.fr;
 
 import java.util.Arrays;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.List;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.ptr.ByteByReference;
+import com.zbw.arcsoft.CLibrary;
 
 public class AFR_FSDK_FACEMODEL extends Structure {
 

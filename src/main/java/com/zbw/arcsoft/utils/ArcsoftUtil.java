@@ -6,6 +6,20 @@ import com.sun.jna.Pointer;
 import com.sun.jna.ptr.FloatByReference;
 import com.sun.jna.ptr.PointerByReference;
 import com.zbw.arcsoft.*;
+import com.zbw.arcsoft.age.ASAE_FSDK_AGEFACEINPUT;
+import com.zbw.arcsoft.age.ASAE_FSDK_AGERESULT;
+import com.zbw.arcsoft.age.ASGE_FSDKAgeLibrary;
+import com.zbw.arcsoft.age.ASGE_FSDKAge_Version;
+import com.zbw.arcsoft.fd.AFD_FSDKLibrary;
+import com.zbw.arcsoft.fd.AFD_FSDK_FACERES;
+import com.zbw.arcsoft.fd.AFD_FSDK_Version;
+import com.zbw.arcsoft.fd._AFD_FSDK_OrientPriority;
+import com.zbw.arcsoft.fr.AFR_FSDKLibrary;
+import com.zbw.arcsoft.fr.AFR_FSDK_FACEINPUT;
+import com.zbw.arcsoft.fr.AFR_FSDK_FACEMODEL;
+import com.zbw.arcsoft.fr.AFR_FSDK_Version;
+import com.zbw.arcsoft.gender.ASGE_FSDKGenderLibrary;
+import com.zbw.arcsoft.gender.ASGE_FSDKGender_Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,19 +27,30 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Optional;
 
 public final class ArcsoftUtil {
     public static final int FD_WORKBUF_SIZE = 20 * 1024 * 1024;
     public static final int FR_WORKBUF_SIZE = 40 * 1024 * 1024;
+    public static final int AGE_WORKBUF_SIZE = 20 * 1024 * 1024;
+    public static final int GENDER_WORKBUF_SIZE = 20 * 1024 * 1024;
     public static final int MAX_FACE_NUM = 50;
     public static final boolean bUseBGRToEngine = true;
     private static final Logger logger = LoggerFactory.getLogger(ArcsoftUtil.class);
     private static Pointer pFDWorkMem = CLibrary.INSTANCE.malloc(FD_WORKBUF_SIZE);
     private static Pointer pFRWorkMem = CLibrary.INSTANCE.malloc(FR_WORKBUF_SIZE);
+    private static Pointer pAgeWorkMem = CLibrary.INSTANCE.malloc(AGE_WORKBUF_SIZE);
+    private static Pointer pGenderWorkMem = CLibrary.INSTANCE.malloc(GENDER_WORKBUF_SIZE);
 
     private static boolean isExist(Pointer pointer) {
         return pointer != null && pointer != Pointer.NULL;
+    }
+
+    private static void throwExceptionIfNotOK(NativeLong ret, String methodName) throws Exception {
+        if (ret.longValue() != 0) {
+            throw new Exception(String.format("%s code:0x%s", methodName, Long.toHexString(ret.longValue())));
+        }
     }
 
     public static Pointer getFDEngine() throws Exception {
@@ -33,26 +58,25 @@ public final class ArcsoftUtil {
         if (!isExist(pFDWorkMem)) {
             pFDWorkMem = CLibrary.INSTANCE.malloc(FD_WORKBUF_SIZE);
         }
-        NativeLong ret = AFD_FSDKLibrary.INSTANCE.AFD_FSDK_InitialFaceEngine(Config.ARCSORT_APPID, Config.ARCSORT_FD_SDKKEY, pFDWorkMem, FD_WORKBUF_SIZE, phFDEngine, _AFD_FSDK_OrientPriority.AFD_FSDK_OPF_0_HIGHER_EXT, 32, MAX_FACE_NUM);
-        if (ret.longValue() != 0) {
-            throw new Exception(String.format("AFD_FSDK_InitialFaceEngine code:", Integer.valueOf(String.valueOf(ret.longValue()), 16)));
-        }
+        NativeLong ret = AFD_FSDKLibrary.INSTANCE.AFD_FSDK_InitialFaceEngine(Config.ARCSOFT_APPID, Config.ARCSOFT_FD_SDKKEY, pFDWorkMem, FD_WORKBUF_SIZE, phFDEngine, _AFD_FSDK_OrientPriority.AFD_FSDK_OPF_0_HIGHER_EXT, 32, MAX_FACE_NUM);
+        throwExceptionIfNotOK(ret, "AFD_FSDK_InitialFaceEngine");
         return phFDEngine.getValue();
     }
 
-    public static AFD_FSDK_Version getFDVersion(Pointer fdEngine) {
+    public static Optional<AFD_FSDK_Version> getFDVersion(Pointer fdEngine) {
         if (isExist(fdEngine)) {
-            return AFD_FSDKLibrary.INSTANCE.AFD_FSDK_GetVersion(fdEngine);
+            AFD_FSDK_Version version = AFD_FSDKLibrary.INSTANCE.AFD_FSDK_GetVersion(fdEngine);
+            if (version != null) {
+                return Optional.of(version);
+            }
         }
-        return null;
+        return Optional.empty();
     }
 
     public static void freeFDEngine(Pointer fdEngine) throws Exception {
         if (isExist(fdEngine)) {
             NativeLong ret = AFD_FSDKLibrary.INSTANCE.AFD_FSDK_UninitialFaceEngine(fdEngine);
-            if (ret.longValue() != 0) {
-                throw new Exception(String.format("AFD_FSDK_UninitialFaceEngine code:", Integer.valueOf(String.valueOf(ret.longValue()), 16)));
-            }
+            throwExceptionIfNotOK(ret, "AFD_FSDK_UninitialFaceEngine");
         }
         if (isExist(pFDWorkMem)) {
             CLibrary.INSTANCE.free(pFDWorkMem);
@@ -64,26 +88,25 @@ public final class ArcsoftUtil {
         if (!isExist(pFRWorkMem)) {
             pFRWorkMem = CLibrary.INSTANCE.malloc(FR_WORKBUF_SIZE);
         }
-        NativeLong ret = AFR_FSDKLibrary.INSTANCE.AFR_FSDK_InitialEngine(Config.ARCSORT_APPID, Config.ARCSORT_FR_SDKKEY, pFRWorkMem, FR_WORKBUF_SIZE, phFREngine);
-        if (ret.longValue() != 0) {
-            throw new Exception(String.format("AFD_FSDK_InitialFaceEngine ret 0x%x", ret.longValue()));
-        }
+        NativeLong ret = AFR_FSDKLibrary.INSTANCE.AFR_FSDK_InitialEngine(Config.ARCSOFT_APPID, Config.ARCSOFT_FR_SDKKEY, pFRWorkMem, FR_WORKBUF_SIZE, phFREngine);
+        throwExceptionIfNotOK(ret, "AFR_FSDK_InitialEngine");
         return phFREngine.getValue();
     }
 
-    public static AFR_FSDK_Version getFRVersion(Pointer frEngine) {
+    public static Optional<AFR_FSDK_Version> getFRVersion(Pointer frEngine) {
         if (isExist(frEngine)) {
-            return AFR_FSDKLibrary.INSTANCE.AFR_FSDK_GetVersion(frEngine);
+            AFR_FSDK_Version version = AFR_FSDKLibrary.INSTANCE.AFR_FSDK_GetVersion(frEngine);
+            if (version != null) {
+                return Optional.of(version);
+            }
         }
-        return null;
+        return Optional.empty();
     }
 
     public static void freeFREngine(Pointer frEngine) throws Exception {
         if (isExist(frEngine)) {
             NativeLong ret = AFR_FSDKLibrary.INSTANCE.AFR_FSDK_UninitialEngine(frEngine);
-            if (ret.longValue() != 0) {
-                throw new Exception(String.format("AFR_FSDK_UninitialEngine code:", Integer.valueOf(String.valueOf(ret.longValue()), 16)));
-            }
+            throwExceptionIfNotOK(ret, "AFR_FSDK_UninitialEngine");
         }
         if (isExist(pFRWorkMem)) {
             CLibrary.INSTANCE.free(pFRWorkMem);
@@ -120,13 +143,10 @@ public final class ArcsoftUtil {
         return faceFeature;
     }
 
-    public static Optional<FaceInfo[]> doFaceDetection(Pointer hFDEngine, ASVLOFFSCREEN inputImg) {
+    public static Optional<FaceInfo[]> doFaceDetection(Pointer hFDEngine, ASVLOFFSCREEN inputImg) throws Exception {
         PointerByReference ppFaceRes = new PointerByReference();
         NativeLong ret = AFD_FSDKLibrary.INSTANCE.AFD_FSDK_StillImageFaceDetection(hFDEngine, inputImg, ppFaceRes);
-        if (ret.longValue() != 0) {
-            logger.warn(String.format("AFD_FSDK_StillImageFaceDetection ret 0x%x", ret.longValue()));
-            return Optional.empty();
-        }
+        throwExceptionIfNotOK(ret, "AFD_FSDK_StillImageFaceDetection");
 
         AFD_FSDK_FACERES faceRes = new AFD_FSDK_FACERES(ppFaceRes.getValue());
         if (faceRes.nFace > 0) {
@@ -146,6 +166,22 @@ public final class ArcsoftUtil {
         return Optional.empty();
     }
 
+    public static Optional<ASAE_FSDK_AGEFACEINPUT> doFaceDetectionOfAgeInput(Pointer hFDEngine, ASVLOFFSCREEN inputImg) throws Exception {
+        PointerByReference ppFaceRes = new PointerByReference();
+        NativeLong ret = AFD_FSDKLibrary.INSTANCE.AFD_FSDK_StillImageFaceDetection(hFDEngine, inputImg, ppFaceRes);
+        throwExceptionIfNotOK(ret, "AFD_FSDK_StillImageFaceDetection");
+
+        AFD_FSDK_FACERES faceRes = new AFD_FSDK_FACERES(ppFaceRes.getValue());
+        if (faceRes.nFace > 0) {
+            ASAE_FSDK_AGEFACEINPUT input = new ASAE_FSDK_AGEFACEINPUT();
+            input.pFaceRectArray = faceRes.rcFace;
+            input.lFaceNumber = faceRes.nFace;
+            input.pFaceOrientArray = faceRes.lfaceOrient;
+            return Optional.of(input);
+        }
+        return Optional.empty();
+    }
+
     public static Optional<AFR_FSDK_FACEMODEL> extractFRFeature(Pointer hFREngine, ASVLOFFSCREEN inputImg, FaceInfo faceInfo) throws Exception {
         AFR_FSDK_FACEINPUT faceinput = new AFR_FSDK_FACEINPUT();
         faceinput.lOrient = faceInfo.orient;
@@ -156,20 +192,14 @@ public final class ArcsoftUtil {
 
         AFR_FSDK_FACEMODEL faceFeature = new AFR_FSDK_FACEMODEL();
         NativeLong ret = AFR_FSDKLibrary.INSTANCE.AFR_FSDK_ExtractFRFeature(hFREngine, inputImg, faceinput, faceFeature);
-        if (ret.longValue() != 0) {
-            logger.warn(String.format("AFR_FSDK_ExtractFRFeature ret code", Integer.valueOf(String.valueOf(ret.longValue()), 16)));
-            return Optional.empty();
-        }
+        throwExceptionIfNotOK(ret, "AFR_FSDK_ExtractFRFeature");
         return Optional.of(faceFeature.deepCopy());
     }
 
     public static Optional<Float> facePairMatching(Pointer pFREngine, AFR_FSDK_FACEMODEL faceA, AFR_FSDK_FACEMODEL faceB) throws Exception {
         FloatByReference reference = new FloatByReference();
         NativeLong ret = AFR_FSDKLibrary.INSTANCE.AFR_FSDK_FacePairMatching(pFREngine, faceA, faceB, reference);
-        if (ret.longValue() != 0) {
-            logger.warn(String.format("AFR_FSDK_FacePairMatching ret 0x%x", ret.longValue()));
-            return Optional.empty();
-        }
+        throwExceptionIfNotOK(ret, "AFR_FSDK_FacePairMatching");
         return Optional.of(reference.getValue());
     }
 
@@ -282,5 +312,100 @@ public final class ArcsoftUtil {
         }
         inputImg.setAutoRead(false);
         return inputImg;
+    }
+
+    public static Pointer getAgeEngine() throws Exception {
+
+        if (!isExist(pAgeWorkMem)) {
+            pAgeWorkMem = CLibrary.INSTANCE.malloc(AGE_WORKBUF_SIZE);
+        }
+
+        PointerByReference pEngine = new PointerByReference();
+
+        NativeLong ret = ASGE_FSDKAgeLibrary.INSTANCE.ASAE_FSDK_InitAgeEngine(
+                Config.ARCSOFT_APPID,
+                Config.ARCSOFT_AGE_SDKKEY,
+                pAgeWorkMem,
+                AGE_WORKBUF_SIZE,
+                pEngine
+        );
+        throwExceptionIfNotOK(ret, "ASAE_FSDK_InitAgeEngine");
+        return pEngine.getValue();
+    }
+
+    public static void freeAgeEngine(Pointer pEngine) throws Exception {
+        if (isExist(pEngine)) {
+            NativeLong ret = ASGE_FSDKAgeLibrary.INSTANCE.ASAE_FSDK_UninitAgeEngine(pEngine);
+            throwExceptionIfNotOK(ret, "ASAE_FSDK_UninitAgeEngine");
+        }
+
+        if (isExist(pAgeWorkMem)) {
+            CLibrary.INSTANCE.free(pAgeWorkMem);
+        }
+    }
+
+    public static Optional<ASGE_FSDKAge_Version> getAgeVersion(Pointer pEngine) {
+        if (isExist(pEngine)) {
+            return Optional.of(ASGE_FSDKAgeLibrary.INSTANCE.ASAE_FSDK_GetVersion(pEngine));
+        }
+        return Optional.empty();
+    }
+
+    private static Optional<Integer[]> innerAgeDetection(Pointer ageEngine, Pointer fdEngine, ASVLOFFSCREEN input, boolean preview) throws Exception {
+        Optional<ASAE_FSDK_AGEFACEINPUT> ageInput = doFaceDetectionOfAgeInput(fdEngine, input);
+        if (ageInput.isPresent()) {
+            ASAE_FSDK_AGERESULT result = new ASAE_FSDK_AGERESULT();
+            NativeLong ret = preview ?
+                    ASGE_FSDKAgeLibrary.INSTANCE.ASAE_FSDK_AgeEstimation_Preview(ageEngine, input, ageInput.get(), result)
+                    : ASGE_FSDKAgeLibrary.INSTANCE.ASAE_FSDK_AgeEstimation_StaticImage(ageEngine, input, ageInput.get(), result);
+            throwExceptionIfNotOK(ret, preview ? "ASAE_FSDK_AgeEstimation_Preview" : "ASAE_FSDK_AgeEstimation_StaticImage");
+            if (!isExist(result.pAgeResultArray)) {
+                return Optional.empty();
+            }
+
+            int[] ages = result.pAgeResultArray.getIntArray(0, result.lFaceNumber);
+            return Optional.of(Arrays.stream(ages).boxed().toArray(Integer[]::new));
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<Integer[]> doAgeDetectionStaticImage(Pointer ageEngine, Pointer fdEngine, ASVLOFFSCREEN input) throws Exception {
+        return innerAgeDetection(ageEngine, fdEngine, input, false);
+    }
+
+    public static Optional<Integer[]> innerAgeDetectionPreview(Pointer ageEngine, Pointer fdEngine, ASVLOFFSCREEN input) throws Exception {
+        return innerAgeDetection(ageEngine, fdEngine, input, true);
+    }
+
+    public static Pointer getGenderEngine() throws Exception {
+        PointerByReference pGenderEngine = new PointerByReference();
+        if (!isExist(pGenderWorkMem)) {
+            pGenderWorkMem = CLibrary.INSTANCE.malloc(GENDER_WORKBUF_SIZE);
+        }
+        NativeLong ret = ASGE_FSDKGenderLibrary.INSTANCE.ASGE_FSDK_InitGenderEngine(Config.ARCSOFT_APPID, Config.ARCSOFT_GENDER_SDKKEY, pGenderWorkMem, GENDER_WORKBUF_SIZE, pGenderEngine);
+        throwExceptionIfNotOK(ret, "ASGE_FSDK_InitGenderEngine");
+        return pGenderEngine.getValue();
+    }
+
+    public static void freeGenderEngine(Pointer hEngine) throws Exception {
+        if (isExist(hEngine)) {
+            NativeLong ret = ASGE_FSDKGenderLibrary.INSTANCE.ASGE_FSDK_UninitGenderEngine(hEngine);
+            throwExceptionIfNotOK(ret, "ASGE_FSDK_UninitGenderEngine");
+        }
+
+        if (isExist(pGenderWorkMem)) {
+            CLibrary.INSTANCE.free(pGenderWorkMem);
+            pGenderWorkMem = null;
+        }
+    }
+
+    public static Optional<ASGE_FSDKGender_Version> getGenderVersion(Pointer hEngine) throws Exception {
+        if (isExist(hEngine)) {
+            ASGE_FSDKGender_Version version = ASGE_FSDKGenderLibrary.INSTANCE.ASGE_FSDK_GetVersion(hEngine);
+            if (version != null) {
+                return Optional.of(version);
+            }
+        }
+        return Optional.empty();
     }
 }
